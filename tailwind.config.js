@@ -32,6 +32,7 @@ export default {
         'breath': 'breath 2s ease-in-out infinite',
         'hatch': 'hatch 0.5s ease-in-out',
         'pop-in': 'popIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+        'fade-in': 'fadeIn 0.3s ease-in-out',
       },
       keyframes: {
         wiggle: {
@@ -69,6 +70,10 @@ export default {
           '0%': { transform: 'scale(0)', opacity: '0' },
           '60%': { transform: 'scale(1.2)', opacity: '1' },
           '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
         },
       },
     },

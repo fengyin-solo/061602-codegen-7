@@ -109,16 +109,16 @@ const formatEffectPreview = (effect: SpriteEvent['acceptEffect']) => {
                      btn-3d hover:from-green-400 hover:to-emerald-500 transition-all flex items-center justify-center gap-2"
               @click="handleDecide('accept')"
             >
-              <span class="text-lg">✨</span>
-              接受请求
+              <span class="text-lg">{{ event.type === 'help' ? '🤝' : '🎁' }}</span>
+              {{ event.type === 'help' ? '伸出援手' : '欣然接受' }}
             </button>
             <button
               class="flex-1 py-3 px-4 bg-gradient-to-r from-gray-500 to-slate-600 text-white rounded-xl font-bold
                      btn-3d hover:from-gray-400 hover:to-slate-500 transition-all flex items-center justify-center gap-2"
               @click="handleDecide('decline')"
             >
-              <span class="text-lg">🚫</span>
-              婉言谢绝
+              <span class="text-lg">{{ event.type === 'help' ? '😔' : '🙏' }}</span>
+              {{ event.type === 'help' ? '无能为力' : '婉言谢绝' }}
             </button>
           </div>
         </div>

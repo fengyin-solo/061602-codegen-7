@@ -28,7 +28,7 @@ const createInitialState = (): GameState => ({
   eventLog: [],
   weatherResistance: {},
   currentSpriteEvent: null,
-  nextSpriteEventAt: Date.now() + SPRITE_EVENT_INTERVAL + randomInt(15000, 30000),
+  nextSpriteEventAt: Date.now() + randomInt(20000, 40000),
 })
 
 const state = reactive<GameState>(createInitialState())
@@ -553,8 +553,13 @@ const returnToStart = () => {
 
 const tryLoadGame = (): boolean => {
   const saved = loadGame()
-  if (saved && saved.phase === 'playing' || saved?.phase === 'breeding') {
-    Object.assign(state, saved)
+  if (saved && (saved.phase === 'playing' || saved.phase === 'breeding')) {
+    const defaults = createInitialState()
+    Object.assign(state, defaults, saved, {
+      weatherResistance: saved.weatherResistance || defaults.weatherResistance,
+      currentSpriteEvent: saved.currentSpriteEvent || defaults.currentSpriteEvent,
+      nextSpriteEventAt: saved.nextSpriteEventAt || Date.now() + randomInt(20000, 40000),
+    })
     startGameLoop()
     return true
   }
