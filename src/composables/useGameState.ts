@@ -1,5 +1,5 @@
 import { reactive, computed, watch } from 'vue'
-import type { GameState, Bird, Berry, GrowthStage, Personality, BerryType, Weather, GameScore } from '@/types/game'
+import type { GameState, Bird, Berry, GrowthStage, Personality, BerryType, Weather, GameScore, SpriteEvent, SpriteDecision, SpriteEffect } from '@/types/game'
 import {
   ATTR_MIN, ATTR_MAX, DEATH_THRESHOLD,
   STAGE_DURATION, FOOD_NEED_MULTIPLIER,
@@ -7,7 +7,7 @@ import {
   BERRY_SPAWN_INTERVAL, BERRY_MAX_COUNT, BERRY_LIFETIME,
   BERRY_VALUES, WEATHER_CHANGE_INTERVAL, WEATHER_EFFECTS,
   DAY_DURATION, INITIAL_FOOD, MIN_EGGS, MAX_EGGS,
-  MAX_BREEDING_ROUNDS, BIRD_NAMES,
+  MAX_BREEDING_ROUNDS, BIRD_NAMES, SPRITE_EVENT_INTERVAL, SPRITE_EVENTS,
 } from '@/utils/constants'
 import { randomInt, randomFloat, clamp, randomChoice, generateId, chance } from '@/utils/random'
 import { saveGame, loadGame, clearSave } from '@/utils/storage'
@@ -26,6 +26,9 @@ const createInitialState = (): GameState => ({
   breedingCount: 0,
   maxBreedingRounds: MAX_BREEDING_ROUNDS,
   eventLog: [],
+  weatherResistance: {},
+  currentSpriteEvent: null,
+  nextSpriteEventAt: Date.now() + SPRITE_EVENT_INTERVAL + randomInt(15000, 30000),
 })
 
 const state = reactive<GameState>(createInitialState())
@@ -143,7 +146,11 @@ const updateGame = (deltaMs: number) => {
     changeWeather()
   }
 
-  const weatherEffect = WEATHER_EFFECTS[state.currentWeather]
+  if (!state.currentSpriteEvent && Date.now() >= state.nextSpriteEventAt && state.phase === 'playing') {
+    triggerSpriteEvent()
+  }
+
+  const weatherEffect = getWeatherEffects()
   const aliveBirds = state.birds.filter(b => !b.isDead)
 
   aliveBirds.forEach(bird => {
@@ -294,7 +301,80 @@ const buryBird = (birdId: string) => {
   })
 }
 
-const getWeatherEffects = () => WEATHER_EFFECTS[state.currentWeather]
+const getWeatherEffects = () => {
+  const baseEffect = WEATHER_EFFECTS[state.currentWeather]
+  const resistance = state.weatherResistance[state.currentWeather] || 0
+  
+  const applyResistance = (value: number, resistance: number): number => {
+    if (value > 1) {
+      return 1 + (value - 1) * (1 - resistance)
+    } else if (value < 1) {
+      return 1 - (1 - value) * (1 - resistance)
+    }
+    return value
+  }
+  
+  return {
+    ...baseEffect,
+    hungerMod: applyResistance(baseEffect.hungerMod, resistance),
+    fearMod: applyResistance(baseEffect.fearMod, resistance),
+    healthMod: applyResistance(baseEffect.healthMod, resistance),
+    awayChance: baseEffect.awayChance ? baseEffect.awayChance * (1 - resistance) : undefined,
+    sickChance: baseEffect.sickChance ? baseEffect.sickChance * (1 - resistance) : undefined,
+  }
+}
+
+const triggerSpriteEvent = () => {
+  const eventTemplate = randomChoice(SPRITE_EVENTS)
+  const spriteEvent: SpriteEvent = {
+    ...eventTemplate,
+    id: generateId(),
+  }
+  state.currentSpriteEvent = spriteEvent
+  addEventLog(`✨ ${spriteEvent.spriteEmoji} ${spriteEvent.spriteName} 出现了！`, 'info')
+}
+
+const applySpriteEffect = (effect: SpriteEffect) => {
+  if (effect.weatherResist) {
+    Object.entries(effect.weatherResist).forEach(([weather, value]) => {
+      const w = weather as Weather
+      state.weatherResistance[w] = (state.weatherResistance[w] || 0) + value
+      if (state.weatherResistance[w]! > 0.8) state.weatherResistance[w] = 0.8
+    })
+  }
+  
+  if (effect.foodStock) {
+    state.foodStock = Math.max(0, state.foodStock + effect.foodStock)
+  }
+  
+  const aliveBirds = state.birds.filter(b => !b.isDead && b.stage !== 'egg')
+  aliveBirds.forEach(bird => {
+    if (effect.birdHealth) {
+      bird.health = clamp(bird.health + effect.birdHealth, ATTR_MIN, ATTR_MAX)
+    }
+    if (effect.birdHunger) {
+      bird.hunger = clamp(bird.hunger + effect.birdHunger, ATTR_MIN, ATTR_MAX)
+    }
+    if (effect.birdFear) {
+      bird.fear = clamp(bird.fear + effect.birdFear, ATTR_MIN, ATTR_MAX)
+    }
+  })
+  
+  addEventLog(effect.logMessage, effect.logType)
+}
+
+const handleSpriteDecision = (decision: SpriteDecision) => {
+  if (!state.currentSpriteEvent) return
+  
+  const effect = decision === 'accept' 
+    ? state.currentSpriteEvent.acceptEffect 
+    : state.currentSpriteEvent.declineEffect
+  
+  applySpriteEffect(effect)
+  
+  state.currentSpriteEvent = null
+  state.nextSpriteEventAt = Date.now() + SPRITE_EVENT_INTERVAL + randomInt(20000, 40000)
+}
 
 const changeWeather = () => {
   const newWeather = randomChoice(WEATHERS.filter(w => w !== state.currentWeather))
@@ -504,6 +584,7 @@ export function useGameState() {
     restartGame,
     returnToStart,
     tryLoadGame,
+    handleSpriteDecision,
     allAdults,
     aliveCount,
   }

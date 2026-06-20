@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { GameState } from '@/types/game'
-import { WEATHER_NAMES } from '@/utils/constants'
+import type { GameState, Weather } from '@/types/game'
+import { WEATHER_NAMES, WEATHER_EMOJI } from '@/utils/constants'
 
 const props = defineProps<{
   state: GameState
@@ -14,6 +14,15 @@ const weatherClass = computed(() => {
     case 'snowy': return 'bg-gradient-to-r from-blue-200/30 to-white/20'
     case 'stormy': return 'bg-gradient-to-r from-purple-600/30 to-gray-700/30'
   }
+})
+
+const hasResistance = computed(() => {
+  return Object.values(props.state.weatherResistance).some(v => v && v > 0)
+})
+
+const resistanceList = computed(() => {
+  const entries = Object.entries(props.state.weatherResistance) as [Weather, number][]
+  return entries.filter(([_, v]) => v && v > 0)
 })
 </script>
 
@@ -58,6 +67,20 @@ const weatherClass = computed(() => {
       <div v-if="state.breedingCount > 0" class="flex items-center gap-2 bg-pink-500/40 px-3 py-1.5 rounded-xl">
         <span class="text-xl">💝</span>
         <span class="text-white font-bold">{{ state.breedingCount }}/{{ state.maxBreedingRounds }}</span>
+      </div>
+
+      <div v-if="hasResistance" class="flex items-center gap-2 bg-gradient-to-r from-purple-500/40 to-pink-500/40 px-3 py-1.5 rounded-xl">
+        <span class="text-xl">🛡️</span>
+        <div class="flex items-center gap-1.5">
+          <span
+            v-for="[weather, value] in resistanceList"
+            :key="weather"
+            class="text-sm font-bold"
+            :title="`${WEATHER_NAMES[weather].split(' ')[1]}抗性 +${Math.round(value * 100)}%`"
+          >
+            {{ WEATHER_EMOJI[weather] }}{{ Math.round(value * 100) }}%
+          </span>
+        </div>
       </div>
     </div>
   </div>

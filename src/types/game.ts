@@ -2,6 +2,31 @@ export type GrowthStage = 'egg' | 'chick' | 'juvenile' | 'subadult' | 'adult'
 
 export type Weather = 'sunny' | 'rainy' | 'snowy' | 'stormy'
 
+export type SpriteEventType = 'help' | 'gift'
+
+export type SpriteDecision = 'accept' | 'decline'
+
+export interface SpriteEvent {
+  id: string
+  type: SpriteEventType
+  title: string
+  description: string
+  spriteName: string
+  spriteEmoji: string
+  acceptEffect: SpriteEffect
+  declineEffect: SpriteEffect
+}
+
+export interface SpriteEffect {
+  weatherResist?: Partial<Record<Weather, number>>
+  foodStock?: number
+  birdHealth?: number
+  birdHunger?: number
+  birdFear?: number
+  logMessage: string
+  logType: 'success' | 'warning' | 'info' | 'danger'
+}
+
 export type Personality = 'bold' | 'shy' | 'gentle' | 'curious' | 'stubborn'
 
 export type BerryType = 'red' | 'blue' | 'golden'
@@ -56,6 +81,9 @@ export interface GameState {
   eventLog: { id: string; message: string; type: string; timestamp: number }[]
   score?: GameScore
   selectedBirdId?: string
+  weatherResistance: Partial<Record<Weather, number>>
+  currentSpriteEvent: SpriteEvent | null
+  nextSpriteEventAt: number
 }
 
 export interface GameScore {

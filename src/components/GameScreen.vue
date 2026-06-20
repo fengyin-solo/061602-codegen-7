@@ -7,6 +7,7 @@ import NestScene from './NestScene.vue'
 import WeatherOverlay from './WeatherOverlay.vue'
 import BirdCard from './BirdCard.vue'
 import EventModal from './EventModal.vue'
+import SpriteEventModal from './SpriteEventModal.vue'
 import { WEATHER_COLORS } from '@/utils/constants'
 
 const router = useRouter()
@@ -14,6 +15,7 @@ const {
   state, allAdults, aliveCount,
   collectBerry, feedBird, calmBird, buryBird,
   releaseBirds, keepAndBreed, returnToStart, tryLoadGame,
+  handleSpriteDecision,
 } = useGameState()
 
 onMounted(() => {
@@ -53,6 +55,12 @@ const handleCollect = (id: string) => {
       :class="['absolute inset-0 transition-colors duration-1000 bg-gradient-to-b', WEATHER_COLORS[state.currentWeather]]"
     />
     <WeatherOverlay :weather="state.currentWeather" />
+    
+    <SpriteEventModal
+      v-if="state.currentSpriteEvent"
+      :event="state.currentSpriteEvent"
+      @decide="handleSpriteDecision"
+    />
 
     <div class="relative z-20 w-full h-full flex flex-col p-4 gap-4 max-w-[1400px] mx-auto">
       <StatusBar :state="state" />
